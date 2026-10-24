@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PrepVault — Interview Q&A</title>
+<meta name="description" content="Store, organize and share your interview questions and answers.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────── */
+:root {
+  --bg:        #F7F8FA;
+  --surface:   #FFFFFF;
+  --surface2:  #EEF0F4;
+  --border:    #E2E5EB;
+  --text:      #1A1D23;
+  --text-2:    #5C6070;
+  --text-3:    #9AA0B0;
+  --accent:    #4A72E8;
+  --accent-h:  #3A5FD4;
+  --accent-s:  #EBF0FD;
+  --green:     #22A06B;
+  --green-s:   #E3F7EF;
+  --red:       #D94040;
+  --red-s:     #FDECEC;
+  --yellow:    #D4900A;
+  --yellow-s:  #FEF5E0;
+  --radius:    10px;
+  --radius-lg: 16px;
+  --shadow:    0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.10);
+  --font:      'Inter', system-ui, sans-serif;
+  --serif:     'Lora', Georgia, serif;
+  --sidebar-w: 260px;
+  --header-h:  58px;
+  --pad:       env(safe-area-inset-top,0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:       #12141A;
+    --surface:  #1C1F28;
+    --surface2: #242836;
+    --border:   #2E3344;
+    --text:     #E8EAF0;
+    --text-2:   #9AA0B0;
+    --text-3:   #5C6070;
+    --accent:   #6B8FFF;
+    --accent-h: #839FFF;
+    --accent-s: #1A2240;
+    --green:    #34C987;
+    --green-s:  #0F2A1C;
+    --red:      #F06060;
+    --red-s:    #2A0F0F;
+    --yellow:   #F0B830;
+    --yellow-s: #2A1F05;
+    --shadow:   0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+    --shadow-lg:0 4px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:       #12141A;
+  --surface:  #1C1F28;
+  --surface2: #242836;
+  --border:   #2E3344;
+  --text:     #E8EAF0;
+  --text-2:   #9AA0B0;
+  --text-3:   #5C6070;
+  --accent:   #6B8FFF;
+  --accent-h: #839FFF;
+  --accent-s: #1A2240;
+  --green:    #34C987;
+  --green-s:  #0F2A1C;
+  --red:      #F06060;
+  --red-s:    #2A0F0F;
+  --yellow:   #F0B830;
+  --yellow-s: #2A1F05;
+  --shadow:   0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.4);
+}
+
+/* ─── RESET ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-padding-top: var(--pad); }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-h); }
+button, input, textarea, select {
+  font: inherit;
+  outline: none;
+  border: none;
+  background: none;
+  color: inherit;
+}
+img { max-width: 100%; display: block; }
+
+/* ─── UTILITY ────────────────────────────────────────────── */
+.hidden   { display: none !important; }
+.flex     { display: flex; }
+.flex-col { flex-direction: column; }
+.gap-1    { gap: 6px; }
+.gap-2    { gap: 12px; }
+.gap-3    { gap: 18px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.grow { flex: 1 1 0; min-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ─── TOASTS ─────────────────────────────────────────────── */
+#toast-root {
+  position: fixed; bottom: 24px; right: 24px;
+  z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: .875rem;
+  box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: 8px;
+  animation: slide-in .25s ease;
+  pointer-events: auto;
+  max-width: 320px;
+}
+.toast.err  { border-left: 3px solid var(--red);   background: var(--red-s); }
+.toast.ok   { border-left: 3px solid var(--green); background: var(--green-s); }
+.toast.warn { border-left: 3px solid var(--yellow); background: var(--yellow-s); }
+@keyframes slide-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+/* ─── BUTTONS ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: .875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, opacity .15s, box-shadow .15s;
+  white-space: nowrap;
+  border: 1.5px solid transparent;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-h); border-color: var(--accent-h); }
+.btn-ghost {
+  color: var(--text-2);
+  border-color: var(--border);
+  background: var(--surface);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.btn-danger { background: var(--red-s); color: var(--red); border-color: var(--red); }
+.btn-danger:hover:not(:disabled) { opacity: .85; }
+.btn-sm { padding: 5px 10px; font-size: .8rem; }
+.btn-icon {
+  padding: 7px; border-radius: var(--radius);
+  color: var(--text-2);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-icon:hover { background: var(--surface2); color: var(--text); }
+.btn-icon svg { display: block; width: 18px; height: 18px; }
+
+/* ─── FORM INPUTS ────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .9rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-s); }
+.input::placeholder { color: var(--text-3); }
+label { font-size: .82rem; font-weight: 500; color: var(--text-2); display: block; margin-bottom: 5px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+
+/* ─── MODAL ──────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 440px;
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 20px;
+  animation: modal-in .2s ease;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.modal-lg { max-width: 640px; }
+@keyframes modal-in { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
+.modal-title { font-size: 1.1rem; font-weight: 600; }
+
+/* ─── AUTH SCREENS ───────────────────────────────────────── */
+#auth-screen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.auth-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  width: 100%; max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; gap: 22px;
+}
+.auth-logo { display: flex; align-items: center; gap: 10px; }
+.auth-logo-mark {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 1.1rem;
+}
+.auth-logo-text { font-size: 1.25rem; font-weight: 600; letter-spacing: -.02em; }
+.auth-logo-text span { color: var(--accent); }
+.auth-heading { font-size: 1.45rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; }
+.auth-sub { font-size: .875rem; color: var(--text-2); line-height: 1.5; }
+.auth-sep { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: .8rem; }
+.auth-sep::before, .auth-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.auth-switch { font-size: .85rem; color: var(--text-2); text-align: center; }
+.auth-switch a { font-weight: 500; }
+
+/* ─── APP SHELL ──────────────────────────────────────────── */
+#app { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 200;
+  transition: transform .25s ease;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sidebar-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .95rem; }
+.logo-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: .9rem; flex-shrink: 0;
+}
+.sidebar-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-search input {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: .82rem;
+  color: var(--text);
+}
+.sidebar-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-s); }
+.sidebar-search { position: relative; }
+.search-icon {
+  position: absolute; left: 22px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3); pointer-events: none;
+}
+.sidebar-topics {
+  flex: 1; overflow-y: auto;
+  padding: 8px 8px;
+}
+.sidebar-section-label {
+  font-size: .72rem; font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: .06em;
+  padding: 8px 8px 4px;
+  text-transform: uppercase;
+}
+.topic-item {
+  display: flex; align-items: center;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  gap: 8px;
+  transition: background .12s;
+  color: var(--text-2);
+  font-size: .875rem;
+}
+.topic-item:hover { background: var(--surface2); color: var(--text); }
+.topic-item.active { background: var(--accent-s); color: var(--accent); font-weight: 500; }
+.topic-item .ti-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topic-item .ti-badge {
+  font-size: .68rem; padding: 1px 5px;
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.topic-item.active .ti-badge { background: var(--accent); color: #fff; }
+.topic-item .ti-lock { color: var(--text-3); flex-shrink: 0; }
+
+.sidebar-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent-s);
+  color: var(--accent);
+  font-weight: 600; font-size: .8rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.user-email { font-size: .78rem; color: var(--text-2); flex: 1; min-width: 0; }
+
+/* Main area */
+#main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+#header {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  margin-top: env(safe-area-inset-top, 0px);
+}
+#header .page-title {
+  font-size: 1rem; font-weight: 600;
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#content {
+  flex: 1;
+  padding: 24px 28px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Mobile overlay */
+#sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 150;
+}
+
+/* ─── WELCOME / EMPTY ─────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 60px 24px;
+  text-align: center;
+}
+.empty-state svg { color: var(--text-3); }
+.empty-state h2 { font-size: 1.25rem; font-weight: 600; }
+.empty-state p { font-size: .9rem; color: var(--text-2); max-width: 320px; line-height: 1.6; }
+
+/* ─── TOPIC VIEW ─────────────────────────────────────────── */
+.topic-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .75rem; font-weight: 500;
+  padding: 3px 8px; border-radius: 20px;
+}
+.badge-green { background: var(--green-s); color: var(--green); }
+.badge-yellow { background: var(--yellow-s); color: var(--yellow); }
+.badge-blue  { background: var(--accent-s); color: var(--accent); }
+
+/* Question cards */
+.q-list { display: flex; flex-direction: column; gap: 14px; }
+.q-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s;
+}
+.q-card:hover { box-shadow: var(--shadow-lg); }
+.q-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 16px 18px 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.q-num {
+  flex-shrink: 0; margin-top: 2px;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--accent-s); color: var(--accent);
+  font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.q-text {
+  flex: 1;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+}
+.q-chevron {
+  flex-shrink: 0; margin-top: 2px;
+  color: var(--text-3); transition: transform .2s;
+}
+.q-card.open .q-chevron { transform: rotate(90deg); }
+.q-answer {
+  display: none;
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--border);
+}
+.q-card.open .q-answer { display: block; }
+.q-answer-inner {
+  padding-top: 16px;
+  font-size: .9rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+.q-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }
+
+/* ─── MARKDOWN RENDERED ──────────────────────────────────── */
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+  font-family: var(--serif);
+  font-weight: 500;
+  margin: 1.2em 0 .5em;
+  line-height: 1.3;
+  color: var(--text);
+}
+.md-body h1 { font-size: 1.4rem; }
+.md-body h2 { font-size: 1.2rem; }
+.md-body h3 { font-size: 1rem; }
+.md-body p { margin: 0 0 .8em; }
+.md-body ul, .md-body ol { padding-left: 1.5em; margin: 0 0 .8em; }
+.md-body li { margin-bottom: .3em; }
+.md-body code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .82em;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.md-body pre {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 0 0 1em;
+}
+.md-body pre code {
+  background: none; border: none;
+  padding: 0; font-size: .85rem;
+}
+.md-body blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0 0 1em;
+  padding: 6px 14px;
+  color: var(--text-2);
+  background: var(--accent-s);
+  border-radius: 0 6px 6px 0;
+}
+.md-body table {
+  width: 100%; border-collapse: collapse;
+  margin: 0 0 1em; font-size: .875rem;
+}
+.md-body th, .md-body td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.md-body th { background: var(--surface2); font-weight: 600; }
+.md-body tr:nth-child(even) { background: var(--bg); }
+.md-body a { color: var(--accent); text-decoration: underline; }
+.md-body hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.md-body .mermaid { margin: 1em 0; }
+.md-body img { border-radius: var(--radius); max-width: 100%; }
+
+/* ─── EDITOR ─────────────────────────────────────────────── */
+#editor-modal .modal { max-width: 860px; width: 100%; padding: 0; }
+.editor-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.editor-title-input {
+  flex: 1;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.editor-title-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-s); }
+.editor-body {
+  display: grid; grid-template-columns: 1fr 1fr;
+  height: 440px; overflow: hidden;
+}
+.editor-pane {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.editor-pane-label {
+  padding: 6px 14px;
+  font-size: .72rem; font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.editor-pane:last-child { border-left: 1px solid var(--border); }
+.editor-textarea {
+  flex: 1;
+  padding: 14px;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .82rem;
+  line-height: 1.7;
+  resize: none;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  overflow-y: auto;
+}
+.editor-textarea:focus { outline: none; }
+.editor-preview {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+  background: var(--surface);
+  font-size: .875rem;
+}
+.editor-toolbar {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 2px; flex-wrap: wrap;
+  background: var(--bg);
+}
+.tb-btn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: background .12s, color .12s;
+  display: flex; align-items: center; gap: 4px;
+}
+.tb-btn:hover { background: var(--surface2); color: var(--text); }
+.tb-sep { width: 1px; background: var(--border); margin: 2px 4px; align-self: stretch; }
+.editor-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+}
+
+/* ─── TOPIC EDITOR MODAL ─────────────────────────────────── */
+.topic-form { display: flex; flex-direction: column; gap: 16px; }
+
+/* ─── SETTINGS PAGE ──────────────────────────────────────── */
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.settings-section h3 { font-size: .9rem; font-weight: 600; }
+
+/* Toggle switch */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.toggle-info { flex: 1; }
+.toggle-label { font-size: .875rem; font-weight: 500; }
+.toggle-desc { font-size: .8rem; color: var(--text-2); margin-top: 2px; }
+.toggle {
+  position: relative; width: 40px; height: 22px;
+  flex-shrink: 0;
+}
+.toggle input { display: none; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.toggle input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; left: 3px; top: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+  pointer-events: none;
+}
+.toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+/* ─── PUBLIC VIEW ────────────────────────────────────────── */
+#public-banner {
+  background: var(--accent-s);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  text-align: center;
+  font-size: .82rem;
+  color: var(--accent);
+}
+
+/* ─── SEARCH RESULTS ─────────────────────────────────────── */
+.search-result-q {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.search-result-q:hover { background: var(--surface2); }
+.search-result-q .srq-topic { font-size: .72rem; color: var(--text-3); margin-bottom: 2px; }
+.search-result-q .srq-text { font-size: .875rem; font-weight: 500; }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+  }
+  #sidebar.open {
+    transform: none;
+    box-shadow: var(--shadow-lg);
+  }
+  #sidebar-overlay.open { display: block; }
+  #main { margin-left: 0; }
+  #content { padding: 16px; }
+  .editor-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: 520px;
+  }
+  .editor-pane:last-child { border-left: none; border-top: 1px solid var(--border); }
+  #header { padding: 0 14px; }
+  .q-text { font-size: .925rem; }
+  .auth-card { padding: 28px 20px; }
+}
+@media (max-width: 480px) {
+  .editor-body { height: 460px; }
+  .modal { padding: 20px; }
+  #content { padding: 12px; }
+}
+
+/* ─── LOADING ────────────────────────────────────────────── */
+.spinner {
+  width: 22px; height: 22px; border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-center { display: flex; align-items: center; justify-content: center; padding: 60px; }
+
+/* ─── DRAG INDICATOR ─────────────────────────────────────── */
+.q-card.dragging { opacity: .5; }
+.q-card[draggable="true"] .q-header { cursor: grab; }
+
+/* public-read-only remove header gap */
+body.public-mode #main { margin-left: 0; }
+body.public-mode #sidebar { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ─── TOAST ROOT ──────────────────────────── -->
+<div id="toast-root"></div>
+
+<!-- ─── AUTH SCREEN ────────────────────────── -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">P</div>
+      <div class="auth-logo-text">Prep<span>Vault</span></div>
+    </div>
+    <div>
+      <div class="auth-heading" id="auth-heading">Welcome back</div>
+      <div class="auth-sub" style="margin-top:6px" id="auth-sub">Sign in to access your interview questions.</div>
+    </div>
+    <div class="flex flex-col gap-2" id="auth-fields">
+      <div class="field" id="name-field" style="display:none">
+        <label>Your name</label>
+        <input class="input" id="auth-name" type="text" placeholder="Jane Smith" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input class="input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input class="input" id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="field" id="confirm-field" style="display:none">
+        <label>Confirm password</label>
+        <input class="input" id="auth-confirm" type="password" placeholder="••••••••" autocomplete="new-password">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" id="auth-submit">Sign in</button>
+    <div class="auth-sep">or</div>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" id="auth-google">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 20-8 20-20 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.2 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.5 0-14 4.1-17.7 10.3z" opacity=".7"/><path fill="#FBBC05" d="M24 43c5.4 0 10.1-1.8 13.8-4.9l-6.4-5.3C29.4 34.6 26.8 35.5 24 35.5c-6 0-11.1-4-13-9.5l-7 5.4C7.5 38.8 15.2 43 24 43z" opacity=".7"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.9 2.6-2.6 4.8-4.8 6.3l6.4 5.3C41.2 36.7 44.5 30.3 44.5 23c0-1-.1-2-.5-3z" opacity=".7"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-switch" id="auth-switch">
+      Don't have an account? <a href="#" id="auth-toggle">Create one</a>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ───────────────────────────── -->
+<div id="app" class="hidden">
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-mark">P</div>
+        <span>PrepVault</span>
+      </div>
+      <button class="btn-icon" id="close-sidebar" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-search">
+      <div class="search-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <input type="search" id="search-input" placeholder="Search questions…" autocomplete="off">
+    </div>
+
+    <div class="sidebar-topics" id="sidebar-topics">
+      <div class="sidebar-section-label">My Topics</div>
+      <div id="topics-list">
+        <div class="loading-center" style="padding:24px"><div class="spinner"></div></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:8px" id="new-topic-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        New Topic
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-email truncate" id="user-email"></div>
+      <div class="flex gap-1">
+        <button class="btn-icon" id="theme-toggle" title="Toggle theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button class="btn-icon" id="signout-btn" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main panel -->
+  <div id="main">
+    <header id="header">
+      <button class="btn-icon" id="open-sidebar" title="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="page-title" id="header-title">PrepVault</div>
+      <div id="header-actions" class="flex gap-2 items-center"></div>
+    </header>
+
+    <main id="content">
+      <!-- Dynamic content renders here -->
+    </main>
+  </div>
+</div>
+
+<!-- ─── MODALS ─────────────────────────────── -->
+
+<!-- Topic modal -->
+<div id="topic-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-title" id="topic-modal-title">New Topic</div>
+    <form class="topic-form" id="topic-form" onsubmit="return false">
+      <div class="field">
+        <label>Topic name</label>
+        <input class="input" id="topic-name" type="text" placeholder="e.g. React, System Design, SQL…" required>
+      </div>
+      <div class="field">
+        <label>Description <span style="color:var(--text-3);font-weight:400">(optional)</span></label>
+        <textarea class="input" id="topic-desc" rows="2" placeholder="What is this topic about?"></textarea>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-label">Make public</div>
+          <div class="toggle-desc">Anyone with the link can read this topic.</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="topic-public">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="flex gap-2 justify-between" style="margin-top:4px">
+        <button class="btn btn-ghost" type="button" id="topic-cancel">Cancel</button>
+        <button class="btn btn-primary" type="submit" id="topic-save">Create Topic</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Question editor modal -->
+<div id="editor-modal" class="modal-backdrop hidden">
+  <div class="modal modal-lg" style="padding:0;max-width:900px">
+    <div class="editor-header">
+      <input class="editor-title-input input" id="q-title-input" placeholder="Question text…" style="font-family:var(--serif)">
+      <button class="btn-icon" id="editor-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="editor-toolbar">
+      <button class="tb-btn" data-action="bold"><b>B</b></button>
+      <button class="tb-btn" data-action="italic"><i>I</i></button>
+      <button class="tb-btn" data-action="code">&#96;code&#96;</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-action="h2">H2</button>
+      <button class="tb-btn" data-action="h3">H3</button>
+      <button class="tb-btn" data-action="ul">• List</button>
+      <button class="tb-btn" data-action="ol">1. List</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-action="link">Link</button>
+      <button class="tb-btn" data-action="table">Table</button>
+      <button class="tb-btn" data-action="codeblock">```block</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-action="mermaid" title="Insert Mermaid diagram">📊 Mermaid</button>
+    </div>
+    <div class="editor-body">
+      <div class="editor-pane">
+        <div class="editor-pane-label">Markdown</div>
+        <textarea class="editor-textarea" id="answer-editor" placeholder="Write your answer in Markdown…&#10;&#10;Use ```mermaid for diagrams!"></textarea>
+      </div>
+      <div class="editor-pane">
+        <div class="editor-pane-label">Preview</div>
+        <div class="editor-preview md-body" id="editor-preview"></div>
+      </div>
+    </div>
+    <div class="editor-footer">
+      <button class="btn btn-ghost" id="editor-cancel">Cancel</button>
+      <button class="btn btn-primary" id="editor-save">Save Question</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title" id="confirm-title">Confirm</div>
+    <p id="confirm-body" style="font-size:.9rem;color:var(--text-2)"></p>
+    <div class="flex gap-2 justify-between">
+      <button class="btn btn-ghost" id="confirm-no">Cancel</button>
+      <button class="btn btn-danger" id="confirm-yes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div id="share-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-title">Share Topic</div>
+    <p style="font-size:.875rem;color:var(--text-2)">Anyone with this link can read (not edit) your topic.</p>
+    <div class="field">
+      <label>Public link</label>
+      <div class="flex gap-2">
+        <input class="input" id="share-url" readonly style="font-size:.8rem">
+        <button class="btn btn-ghost" id="copy-share-url">Copy</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="share-close" style="align-self:flex-end">Done</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// CONFIG  – Replace with your Supabase project URL & anon key
+// ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL  = window.ENV_SUPABASE_URL  || 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON = window.ENV_SUPABASE_ANON || 'YOUR_SUPABASE_ANON_KEY';
+
+// ─────────────────────────────────────────────────────────────────
+// SUPABASE CLIENT
+// ─────────────────────────────────────────────────────────────────
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ─────────────────────────────────────────────────────────────────
+// MERMAID INIT
+// ─────────────────────────────────────────────────────────────────
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'neutral',
+  themeVariables: { primaryColor: '#4A72E8', fontSize: '14px' }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// MARKED CONFIG
+// ─────────────────────────────────────────────────────────────────
+marked.setOptions({ breaks: true, gfm: true });
+
+// Custom renderer to intercept ```mermaid blocks
+const renderer = new marked.Renderer();
+const origCode = renderer.code.bind(renderer);
+renderer.code = (code, lang) => {
+  if (lang === 'mermaid') {
+    const id = 'mm-' + Math.random().toString(36).slice(2);
+    return `<div class="mermaid" id="${id}">${DOMPurify.sanitize(code)}</div>`;
+  }
+  return origCode(code, lang);
+};
+marked.setOptions({ renderer });
+
+function renderMd(md) {
+  const html = DOMPurify.sanitize(marked.parse(md || ''), { ADD_TAGS: ['div'], ADD_ATTR: ['class','id'] });
+  return html;
+}
+
+async function renderMdWithMermaid(el, md) {
+  el.innerHTML = renderMd(md);
+  const diagrams = el.querySelectorAll('.mermaid');
+  for (const d of diagrams) {
+    try {
+      const id = d.id || ('mm-' + Math.random().toString(36).slice(2));
+      d.id = id;
+      const { svg } = await mermaid.render(id + '-svg', d.textContent);
+      d.innerHTML = svg;
+    } catch(e) {
+      d.innerHTML = `<pre style="color:var(--red);font-size:.8rem">Mermaid error: ${e.message}</pre>`;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────
+let state = {
+  user: null,
+  topics: [],
+  currentTopicId: null,
+  questions: [],
+  editingQId: null,
+  editingTopicId: null,
+  publicMode: false,
+  theme: localStorage.getItem('theme') || 'auto',
+};
+
+// ─────────────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────────────
+function applyTheme() {
+  const t = state.theme;
+  if (t === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  else if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.removeAttribute('data-theme');
+}
+function toggleTheme() {
+  const themes = ['auto','dark','light'];
+  const i = themes.indexOf(state.theme);
+  state.theme = themes[(i + 1) % 3];
+  localStorage.setItem('theme', state.theme);
+  applyTheme();
+}
+applyTheme();
+
+// ─────────────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────────────
+function toast(msg, type = 'ok', dur = 3000) {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-root').appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONFIRM DIALOG
+// ─────────────────────────────────────────────────────────────────
+function confirm(title, body) {
+  return new Promise(resolve => {
+    const m = document.getElementById('confirm-modal');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-body').textContent = body;
+    m.classList.remove('hidden');
+    const yes = document.getElementById('confirm-yes');
+    const no  = document.getElementById('confirm-no');
+    const done = (v) => { m.classList.add('hidden'); resolve(v); };
+    yes.onclick = () => done(true);
+    no.onclick  = () => done(false);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DETECT PUBLIC ROUTE  /?topic=UUID
+// ─────────────────────────────────────────────────────────────────
+function getPublicTopicId() {
+  const p = new URLSearchParams(location.search);
+  return p.get('topic') || null;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ROUTER / BOOT
+// ─────────────────────────────────────────────────────────────────
+async function boot() {
+  const publicId = getPublicTopicId();
+  if (publicId) {
+    await bootPublic(publicId);
+    return;
+  }
+
+  // Check auth
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showAuthScreen('login'); return; }
+
+  state.user = session.user;
+  await showApp();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PUBLIC MODE
+// ─────────────────────────────────────────────────────────────────
+async function bootPublic(topicId) {
+  state.publicMode = true;
+  document.body.classList.add('public-mode');
+
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('open-sidebar').classList.add('hidden');
+
+  // Show banner
+  const banner = document.createElement('div');
+  banner.id = 'public-banner';
+  banner.innerHTML = `📖 You are viewing a public topic. <a href="${location.origin}${location.pathname}" style="font-weight:600">Create your own PrepVault →</a>`;
+  document.getElementById('main').prepend(banner);
+
+  // Fetch topic
+  const { data: topic, error } = await sb.from('topics')
+    .select('*').eq('id', topicId).eq('is_public', true).single();
+  if (error || !topic) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2>Topic not found</h2>
+        <p>This topic is private or does not exist.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('header-title').textContent = topic.name;
+
+  const { data: questions } = await sb.from('questions')
+    .select('*').eq('topic_id', topicId).order('sort_order');
+
+  renderQuestions(questions || [], topic, true);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// AUTH SCREEN
+// ─────────────────────────────────────────────────────────────────
+let authMode = 'login';
+
+function showAuthScreen(mode = 'login') {
+  authMode = mode;
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const isLogin = authMode === 'login';
+  document.getElementById('auth-heading').textContent = isLogin ? 'Welcome back' : 'Create account';
+  document.getElementById('auth-sub').textContent = isLogin
+    ? 'Sign in to access your interview questions.'
+    : 'Start organizing your interview prep today.';
+  document.getElementById('auth-submit').textContent = isLogin ? 'Sign in' : 'Create account';
+  document.getElementById('auth-toggle').textContent = isLogin ? 'Create one' : 'Sign in instead';
+  document.getElementById('auth-switch').innerHTML = isLogin
+    ? `Don't have an account? <a href="#" id="auth-toggle">Create one</a>`
+    : `Already have an account? <a href="#" id="auth-toggle">Sign in instead</a>`;
+  document.getElementById('name-field').style.display = isLogin ? 'none' : '';
+  document.getElementById('confirm-field').style.display = isLogin ? 'none' : '';
+  document.getElementById('auth-toggle').onclick = (e) => {
+    e.preventDefault();
+    authMode = isLogin ? 'signup' : 'login';
+    updateAuthUI();
+  };
+}
+
+document.getElementById('auth-submit').onclick = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const pwd   = document.getElementById('auth-password').value;
+  const name  = document.getElementById('auth-name').value.trim();
+  const conf  = document.getElementById('auth-confirm').value;
+
+  if (!email || !pwd) { toast('Email and password required', 'err'); return; }
+  const btn = document.getElementById('auth-submit');
+  btn.disabled = true; btn.textContent = '…';
+
+  if (authMode === 'signup') {
+    if (pwd !== conf) { toast('Passwords do not match', 'err'); btn.disabled=false; updateAuthUI(); return; }
+    const { error } = await sb.auth.signUp({ email, password: pwd,
+      options: { data: { full_name: name } } });
+    if (error) { toast(error.message, 'err'); btn.disabled=false; updateAuthUI(); return; }
+    toast('Check your email to confirm your account.', 'ok', 6000);
+    btn.disabled=false; updateAuthUI(); return;
+  }
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
+  if (error) { toast(error.message, 'err'); btn.disabled=false; updateAuthUI(); return; }
+  state.user = data.user;
+  await showApp();
+};
+
+document.getElementById('auth-google').onclick = async () => {
+  await sb.auth.signInWithOAuth({ provider: 'google',
+    options: { redirectTo: location.href } });
+};
+
+// ─────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────
+async function showApp() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
+  // Set user info
+  const u = state.user;
+  const email = u.email || '';
+  document.getElementById('user-email').textContent = email;
+  document.getElementById('user-avatar').textContent = (u.user_metadata?.full_name || email)[0].toUpperCase();
+
+  await loadTopics();
+  showWelcome();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TOPICS
+// ─────────────────────────────────────────────────────────────────
+async function loadTopics() {
+  const { data, error } = await sb.from('topics')
+    .select('*, questions(count)')
+    .eq('user_id', state.user.id)
+    .order('created_at');
+
+  if (error) { toast('Failed to load topics', 'err'); return; }
+  state.topics = data || [];
+  renderTopicsList();
+}
+
+function renderTopicsList(filter = '') {
+  const el = document.getElementById('topics-list');
+  const list = filter
+    ? state.topics.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()))
+    : state.topics;
+
+  if (!list.length) {
+    el.innerHTML = `<div style="padding:12px 8px;font-size:.82rem;color:var(--text-3)">
+      ${filter ? 'No topics match.' : 'No topics yet. Create one below!'}</div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(t => {
+    const count = t.questions?.[0]?.count ?? 0;
+    const active = t.id === state.currentTopicId;
+    return `<div class="topic-item${active ? ' active' : ''}" data-id="${t.id}">
+      <span class="ti-name">${escHtml(t.name)}</span>
+      ${t.is_public ? `<svg class="ti-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>` : ''}
+      <span class="ti-badge">${count}</span>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.topic-item').forEach(el => {
+    el.addEventListener('click', () => {
+      closeSidebar();
+      loadTopic(el.dataset.id);
+    });
+  });
+}
+
+async function loadTopic(id) {
+  state.currentTopicId = id;
+  renderTopicsList();
+
+  const topic = state.topics.find(t => t.id === id);
+  if (!topic) return;
+
+  document.getElementById('header-title').textContent = topic.name;
+
+  // Set header actions
+  const ha = document.getElementById('header-actions');
+  ha.innerHTML = '';
+
+  // Add question button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-primary btn-sm';
+  addBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add Question`;
+  addBtn.onclick = () => openEditor(null, id);
+  ha.appendChild(addBtn);
+
+  // Topic options
+  const optBtn = document.createElement('button');
+  optBtn.className = 'btn btn-ghost btn-sm';
+  optBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`;
+  optBtn.title = 'Topic options';
+  optBtn.onclick = () => showTopicOptions(topic);
+  ha.appendChild(optBtn);
+
+  // Load questions
+  document.getElementById('content').innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+  const { data, error } = await sb.from('questions')
+    .select('*').eq('topic_id', id).order('sort_order').order('created_at');
+  if (error) { toast('Failed to load questions', 'err'); return; }
+  state.questions = data || [];
+  renderQuestions(state.questions, topic);
+}
+
+function showTopicOptions(topic) {
+  // Reuse topic modal for editing
+  openTopicModal(topic);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RENDER QUESTIONS
+// ─────────────────────────────────────────────────────────────────
+function renderQuestions(questions, topic, readOnly = false) {
+  const content = document.getElementById('content');
+
+  const pubBadge = topic.is_public
+    ? `<span class="badge badge-green"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Public</span>`
+    : `<span class="badge badge-yellow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Private</span>`;
+
+  const shareBtn = (!readOnly && topic.is_public)
+    ? `<button class="btn btn-ghost btn-sm" id="share-btn-top">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>` : '';
+
+  if (!questions.length) {
+    content.innerHTML = `
+      <div class="topic-meta">${pubBadge}${shareBtn}</div>
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <h2>No questions yet</h2>
+        <p>${readOnly ? 'This topic has no questions.' : 'Click "Add Question" to start building your question bank.'}</p>
+        ${readOnly ? '' : `<button class="btn btn-primary" onclick="openEditor(null,'${topic.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add first question</button>`}
+      </div>`;
+    if (topic.is_public && !readOnly) {
+      document.getElementById('share-btn-top')?.addEventListener('click', () => showShareModal(topic));
+    }
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="topic-meta">
+      ${pubBadge}
+      <span class="badge badge-blue">${questions.length} question${questions.length !== 1 ? 's' : ''}</span>
+      ${topic.description ? `<span style="font-size:.82rem;color:var(--text-3)">${escHtml(topic.description)}</span>` : ''}
+      <div style="flex:1"></div>
+      ${shareBtn}
+    </div>
+    <div class="q-list" id="q-list">${questions.map((q,i) => renderQCard(q, i+1, readOnly)).join('')}</div>`;
+
+  // Attach expand/collapse
+  content.querySelectorAll('.q-card').forEach(card => {
+    card.querySelector('.q-header').addEventListener('click', async (e) => {
+      if (e.target.closest('.q-actions')) return;
+      card.classList.toggle('open');
+      if (card.classList.contains('open')) {
+        const preview = card.querySelector('.q-answer-inner');
+        if (preview && !preview.dataset.rendered) {
+          preview.dataset.rendered = '1';
+          const md = preview.dataset.md;
+          await renderMdWithMermaid(preview, md);
+        }
+      }
+    });
+  });
+
+  if (!readOnly) {
+    content.querySelectorAll('.q-edit').forEach(btn => {
+      btn.addEventListener('click', () => openEditor(btn.dataset.id, topic.id));
+    });
+    content.querySelectorAll('.q-delete').forEach(btn => {
+      btn.addEventListener('click', () => deleteQuestion(btn.dataset.id));
+    });
+    if (topic.is_public) {
+      document.getElementById('share-btn-top')?.addEventListener('click', () => showShareModal(topic));
+    }
+  }
+}
+
+function renderQCard(q, num, readOnly) {
+  const actions = readOnly ? '' : `
+    <div class="q-actions">
+      <button class="btn-icon q-edit" data-id="${q.id}" title="Edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn-icon q-delete" data-id="${q.id}" title="Delete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`;
+
+  return `<div class="q-card" data-id="${q.id}">
+    <div class="q-header">
+      <div class="q-num">${num}</div>
+      <div class="q-text">${escHtml(q.question)}</div>
+      ${actions}
+      <svg class="q-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="q-answer">
+      <div class="q-answer-inner md-body" data-md="${escAttr(q.answer || '')}">
+        <div class="spinner" style="width:18px;height:18px"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EDITOR
+// ─────────────────────────────────────────────────────────────────
+let previewTimer = null;
+
+function openEditor(qId, topicId) {
+  state.editingQId = qId;
+  state.editingTopicId = topicId;
+  const modal = document.getElementById('editor-modal');
+  const textarea = document.getElementById('answer-editor');
+  const titleInput = document.getElementById('q-title-input');
+  const preview = document.getElementById('editor-preview');
+
+  if (qId) {
+    const q = state.questions.find(x => x.id === qId);
+    titleInput.value = q?.question || '';
+    textarea.value = q?.answer || '';
+  } else {
+    titleInput.value = '';
+    textarea.value = '';
+  }
+
+  modal.classList.remove('hidden');
+  updatePreview();
+  setTimeout(() => titleInput.focus(), 50);
+}
+
+async function updatePreview() {
+  const preview = document.getElementById('editor-preview');
+  const md = document.getElementById('answer-editor').value;
+  await renderMdWithMermaid(preview, md);
+}
+
+document.getElementById('answer-editor').addEventListener('input', () => {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePreview, 600);
+});
+
+document.getElementById('editor-close').onclick = closeEditor;
+document.getElementById('editor-cancel').onclick = closeEditor;
+function closeEditor() {
+  document.getElementById('editor-modal').classList.add('hidden');
+  state.editingQId = null;
+}
+
+document.getElementById('editor-save').onclick = async () => {
+  const question = document.getElementById('q-title-input').value.trim();
+  const answer   = document.getElementById('answer-editor').value.trim();
+  if (!question) { toast('Please enter a question', 'err'); return; }
+
+  const btn = document.getElementById('editor-save');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const topicId = state.editingTopicId;
+  const qId     = state.editingQId;
+
+  if (qId) {
+    // Update
+    const { error } = await sb.from('questions')
+      .update({ question, answer, updated_at: new Date().toISOString() })
+      .eq('id', qId).eq('topic_id', topicId);
+    if (error) { toast('Save failed: ' + error.message, 'err'); btn.disabled=false; btn.textContent='Save Question'; return; }
+    toast('Question updated', 'ok');
+  } else {
+    // Insert
+    const { error } = await sb.from('questions')
+      .insert({ question, answer, topic_id: topicId, user_id: state.user.id, sort_order: state.questions.length });
+    if (error) { toast('Save failed: ' + error.message, 'err'); btn.disabled=false; btn.textContent='Save Question'; return; }
+    toast('Question added', 'ok');
+  }
+
+  btn.disabled=false; btn.textContent='Save Question';
+  closeEditor();
+  await loadTopic(topicId);
+  await loadTopics();
+};
+
+// Toolbar actions
+document.querySelectorAll('.tb-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ta = document.getElementById('answer-editor');
+    const action = btn.dataset.action;
+    insertMarkdown(ta, action);
+    updatePreview();
+  });
+});
+
+function insertMarkdown(ta, action) {
+  const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const map = {
+    bold:      ['**', '**', 'bold text'],
+    italic:    ['_', '_', 'italic text'],
+    code:      ['`', '`', 'code'],
+    h2:        ['## ', '', 'Heading'],
+    h3:        ['### ', '', 'Heading'],
+    ul:        ['- ', '', 'item'],
+    ol:        ['1. ', '', 'item'],
+    link:      ['[', '](url)', 'link text'],
+    table:     ['| Column 1 | Column 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |', '', ''],
+    codeblock: ['```\n', '\n```', 'code here'],
+    mermaid:   ['```mermaid\ngraph TD\n  A[Start] --> B[End]\n```', '', ''],
+  };
+  const [before, after, placeholder] = map[action] || ['', '', ''];
+  const insert = before + (sel || placeholder) + after;
+  ta.setRangeText(insert, s, e, 'select');
+  ta.focus();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE QUESTION
+// ─────────────────────────────────────────────────────────────────
+async function deleteQuestion(qId) {
+  const ok = await confirm('Delete question?', 'This cannot be undone.');
+  if (!ok) return;
+  const { error } = await sb.from('questions').delete().eq('id', qId);
+  if (error) { toast('Delete failed', 'err'); return; }
+  toast('Question deleted');
+  await loadTopic(state.currentTopicId);
+  await loadTopics();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TOPIC MODAL
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('new-topic-btn').onclick = () => openTopicModal(null);
+
+function openTopicModal(topic = null) {
+  state.editingTopicId = topic?.id || null;
+  document.getElementById('topic-modal-title').textContent = topic ? 'Edit Topic' : 'New Topic';
+  document.getElementById('topic-name').value = topic?.name || '';
+  document.getElementById('topic-desc').value = topic?.description || '';
+  document.getElementById('topic-public').checked = topic?.is_public || false;
+  document.getElementById('topic-save').textContent = topic ? 'Save Changes' : 'Create Topic';
+
+  // Show delete button if editing
+  const existing = document.getElementById('topic-delete-btn');
+  if (existing) existing.remove();
+  if (topic) {
+    const delBtn = document.createElement('button');
+    delBtn.id = 'topic-delete-btn';
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = 'Delete Topic';
+    delBtn.onclick = () => deleteTopic(topic.id);
+    document.getElementById('topic-form').querySelector('.flex').prepend(delBtn);
+  }
+
+  document.getElementById('topic-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('topic-name').focus(), 50);
+}
+
+document.getElementById('topic-cancel').onclick = () => document.getElementById('topic-modal').classList.add('hidden');
+
+document.getElementById('topic-form').onsubmit = async () => {
+  const name     = document.getElementById('topic-name').value.trim();
+  const desc     = document.getElementById('topic-desc').value.trim();
+  const isPublic = document.getElementById('topic-public').checked;
+
+  if (!name) { toast('Name required', 'err'); return; }
+  const btn = document.getElementById('topic-save');
+  btn.disabled = true; btn.textContent = '…';
+
+  const payload = { name, description: desc, is_public: isPublic };
+
+  if (state.editingTopicId) {
+    const { error } = await sb.from('topics').update(payload).eq('id', state.editingTopicId);
+    if (error) { toast(error.message, 'err'); btn.disabled=false; return; }
+    toast('Topic updated');
+  } else {
+    const { error } = await sb.from('topics').insert({ ...payload, user_id: state.user.id });
+    if (error) { toast(error.message, 'err'); btn.disabled=false; return; }
+    toast('Topic created');
+  }
+
+  btn.disabled=false;
+  document.getElementById('topic-modal').classList.add('hidden');
+  await loadTopics();
+  if (state.editingTopicId) await loadTopic(state.editingTopicId);
+};
+
+async function deleteTopic(id) {
+  const ok = await confirm('Delete topic?', 'This will delete all questions in this topic. Cannot be undone.');
+  if (!ok) return;
+  await sb.from('questions').delete().eq('topic_id', id);
+  await sb.from('topics').delete().eq('id', id);
+  document.getElementById('topic-modal').classList.add('hidden');
+  state.currentTopicId = null;
+  toast('Topic deleted');
+  await loadTopics();
+  showWelcome();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SHARE MODAL
+// ─────────────────────────────────────────────────────────────────
+function showShareModal(topic) {
+  const url = `${location.origin}${location.pathname}?topic=${topic.id}`;
+  document.getElementById('share-url').value = url;
+  document.getElementById('share-modal').classList.remove('hidden');
+}
+document.getElementById('copy-share-url').onclick = () => {
+  const inp = document.getElementById('share-url');
+  navigator.clipboard.writeText(inp.value).then(() => toast('Link copied!'));
+};
+document.getElementById('share-close').onclick = () => document.getElementById('share-modal').classList.add('hidden');
+
+// ─────────────────────────────────────────────────────────────────
+// WELCOME
+// ─────────────────────────────────────────────────────────────────
+function showWelcome() {
+  document.getElementById('header-title').textContent = 'PrepVault';
+  document.getElementById('header-actions').innerHTML = '';
+  const topicCount = state.topics.length;
+  const totalQ = state.topics.reduce((a, t) => a + (t.questions?.[0]?.count ?? 0), 0);
+  document.getElementById('content').innerHTML = `
+    <div class="empty-state" style="gap:20px">
+      <div style="width:64px;height:64px;border-radius:18px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff">📝</div>
+      <div>
+        <h2 style="font-family:var(--serif)">Your Interview Prep Hub</h2>
+        <p style="margin-top:8px">${topicCount ? `You have <strong>${topicCount}</strong> topic${topicCount>1?'s':''} and <strong>${totalQ}</strong> question${totalQ!==1?'s':''}.` : 'No topics yet. Create your first topic to start organizing your interview questions.'}</p>
+      </div>
+      ${!topicCount ? `<button class="btn btn-primary" onclick="openTopicModal(null)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Create first topic</button>` : `
+        <div class="flex gap-2 flex-wrap" style="justify-content:center">
+          <button class="btn btn-primary" onclick="openTopicModal(null)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New Topic</button>
+        </div>`}
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SEARCH
+// ─────────────────────────────────────────────────────────────────
+let searchTimer = null;
+document.getElementById('search-input').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if (!q) { renderTopicsList(); return; }
+  searchTimer = setTimeout(() => doSearch(q), 300);
+});
+
+async function doSearch(q) {
+  const { data } = await sb.from('questions')
+    .select('id, question, topic_id, topics(name)')
+    .eq('user_id', state.user.id)
+    .ilike('question', `%${q}%`)
+    .limit(30);
+
+  const topicsEl = document.getElementById('topics-list');
+  if (!data?.length) {
+    topicsEl.innerHTML = `<div style="padding:12px 8px;font-size:.82rem;color:var(--text-3)">No results for "${escHtml(q)}"</div>`;
+    return;
+  }
+
+  topicsEl.innerHTML = data.map(r => `
+    <div class="search-result-q" data-qid="${r.id}" data-tid="${r.topic_id}">
+      <div class="srq-topic">${escHtml(r.topics?.name || '')}</div>
+      <div class="srq-text">${escHtml(r.question)}</div>
+    </div>`).join('');
+
+  topicsEl.querySelectorAll('.search-result-q').forEach(el => {
+    el.addEventListener('click', async () => {
+      document.getElementById('search-input').value = '';
+      await loadTopic(el.dataset.tid);
+      // open the matching card
+      setTimeout(() => {
+        const card = document.querySelector(`.q-card[data-id="${el.dataset.qid}"]`);
+        if (card) { card.classList.add('open'); card.scrollIntoView({behavior:'smooth',block:'center'}); }
+      }, 300);
+      renderTopicsList();
+      closeSidebar();
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SIDEBAR TOGGLE
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('open-sidebar').onclick = () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+};
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+document.getElementById('close-sidebar').onclick = closeSidebar;
+document.getElementById('sidebar-overlay').onclick = closeSidebar;
+
+// ─────────────────────────────────────────────────────────────────
+// SIGNOUT & THEME
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('signout-btn').onclick = async () => {
+  await sb.auth.signOut();
+  state.user = null; state.topics = []; state.currentTopicId = null;
+  showAuthScreen('login');
+};
+document.getElementById('theme-toggle').onclick = toggleTheme;
+
+// ─────────────────────────────────────────────────────────────────
+// AUTH STATE CHANGE
+// ─────────────────────────────────────────────────────────────────
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session && !state.user) {
+    state.user = session.user;
+    showApp();
+  }
+  if (event === 'SIGNED_OUT') {
+    state.user = null;
+    showAuthScreen('login');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>

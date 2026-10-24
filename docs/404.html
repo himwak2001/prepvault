@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PrepVault</title>
+<script>
+  // GitHub Pages 404 trick: redirect to index with query params preserved
+  const url = location.href;
+  const path = url.replace(location.origin, '').replace(/^\/[^/]+/, '');
+  location.replace(location.origin + location.pathname.split('/').slice(0,2).join('/') + '/' + '#' + path);
+</script>
+</head>
+<body></body>
+</html>
