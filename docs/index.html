@@ -963,57 +963,43 @@ mermaid.initialize({
 // ─────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
 
-// Extract mermaid blocks BEFORE passing to marked/DOMPurify
-// Store them in a map keyed by a placeholder, swap back after sanitize
-function renderMd(md) {
-  const mermaidBlocks = {};
-  // Replace ```mermaid ... ``` with a safe placeholder before sanitizing
-  const withPlaceholders = (md || '').replace(
-    /```mermaid\n([\s\S]*?)```/g,
-    (_, code) => {
-      const key = 'MERMAID_BLOCK_' + Math.random().toString(36).slice(2) + '_END';
-      mermaidBlocks[key] = code.trim();
-      return '```\n' + key + '\n```';
-    }
-  );
-
-  // Parse markdown to HTML and sanitize
-  let html = DOMPurify.sanitize(marked.parse(withPlaceholders), {
-    ADD_TAGS: ['pre', 'code'],
-  });
-
-  // Replace placeholders with mermaid divs AFTER sanitization
-  Object.entries(mermaidBlocks).forEach(([key, code]) => {
-    const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html = html.replace(
-      new RegExp('<code>' + key + '</code>', 'g'),
-      `<div class="mermaid-pending" data-graph="${escaped.replace(/"/g,'&quot;')}"></div>`
-    );
-  });
-
-  return html;
-}
-
+// Split markdown into mermaid and non-mermaid segments,
+// render each segment separately, then stitch together in DOM.
 async function renderMdWithMermaid(el, md) {
-  el.innerHTML = renderMd(md);
-  const diagrams = el.querySelectorAll('.mermaid-pending');
-  for (const d of diagrams) {
-    const code = d.dataset.graph
-      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
-    const id = 'mm' + Math.random().toString(36).slice(2);
-    try {
-      const { svg } = await mermaid.render(id, code);
+  el.innerHTML = '';
+  const raw = md || '';
+
+  // Split on ```mermaid ... ``` fences
+  const parts = raw.split(/(```mermaid[\s\S]*?```)/g);
+
+  for (const part of parts) {
+    const mermaidMatch = part.match(/^```mermaid\n?([\s\S]*?)```$/);
+
+    if (mermaidMatch) {
+      // Render as mermaid diagram
+      const code = mermaidMatch[1].trim();
+      const id   = 'mm' + Math.random().toString(36).slice(2);
       const wrapper = document.createElement('div');
       wrapper.className = 'mermaid';
-      wrapper.innerHTML = svg;
-      d.replaceWith(wrapper);
-    } catch(e) {
-      const err = document.createElement('pre');
-      err.style.cssText = 'color:var(--red);font-size:.8rem;padding:8px';
-      err.textContent = 'Mermaid error: ' + e.message;
-      d.replaceWith(err);
+      try {
+        const { svg } = await mermaid.render(id, code);
+        wrapper.innerHTML = svg;
+      } catch(e) {
+        wrapper.innerHTML = `<pre style="color:var(--red);font-size:.8rem;padding:8px">Diagram error: ${e.message}</pre>`;
+      }
+      el.appendChild(wrapper);
+    } else if (part.trim()) {
+      // Render as normal markdown
+      const div = document.createElement('div');
+      div.innerHTML = DOMPurify.sanitize(marked.parse(part));
+      el.appendChild(div);
     }
   }
+}
+
+// Sync version for cases where mermaid isn't needed
+function renderMd(md) {
+  return DOMPurify.sanitize(marked.parse(md || ''));
 }
 
 // ─────────────────────────────────────────────────────────────────
