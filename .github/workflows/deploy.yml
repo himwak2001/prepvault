@@ -25,12 +25,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Inject Supabase credentials into index.html ──────────────
-      # Secrets are set in: GitHub repo → Settings → Secrets → Actions
-      - name: Inject environment variables
+      - name: Inject Supabase credentials into app.js
         run: |
-          sed -i "s|YOUR_SUPABASE_URL|${{ secrets.SUPABASE_URL }}|g"          docs/index.html
-          sed -i "s|YOUR_SUPABASE_ANON_KEY|${{ secrets.SUPABASE_ANON_KEY }}|g" docs/index.html
+          sed -i "s|YOUR_SUPABASE_URL|${{ secrets.SUPABASE_URL }}|g"          docs/app.js
+          sed -i "s|YOUR_SUPABASE_ANON_KEY|${{ secrets.SUPABASE_ANON_KEY }}|g" docs/app.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
