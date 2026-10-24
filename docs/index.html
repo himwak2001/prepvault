@@ -954,6 +954,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 mermaid.initialize({
   startOnLoad: false,
   theme: 'neutral',
+  securityLevel: 'loose',
   themeVariables: { primaryColor: '#4A72E8', fontSize: '14px' }
 });
 
@@ -962,34 +963,55 @@ mermaid.initialize({
 // ─────────────────────────────────────────────────────────────────
 marked.setOptions({ breaks: true, gfm: true });
 
-// Custom renderer to intercept ```mermaid blocks
-const renderer = new marked.Renderer();
-const origCode = renderer.code.bind(renderer);
-renderer.code = (code, lang) => {
-  if (lang === 'mermaid') {
-    const id = 'mm-' + Math.random().toString(36).slice(2);
-    return `<div class="mermaid" id="${id}">${DOMPurify.sanitize(code)}</div>`;
-  }
-  return origCode(code, lang);
-};
-marked.setOptions({ renderer });
-
+// Extract mermaid blocks BEFORE passing to marked/DOMPurify
+// Store them in a map keyed by a placeholder, swap back after sanitize
 function renderMd(md) {
-  const html = DOMPurify.sanitize(marked.parse(md || ''), { ADD_TAGS: ['div'], ADD_ATTR: ['class','id'] });
+  const mermaidBlocks = {};
+  // Replace ```mermaid ... ``` with a safe placeholder before sanitizing
+  const withPlaceholders = (md || '').replace(
+    /```mermaid\n([\s\S]*?)```/g,
+    (_, code) => {
+      const key = 'MERMAID_BLOCK_' + Math.random().toString(36).slice(2) + '_END';
+      mermaidBlocks[key] = code.trim();
+      return '```\n' + key + '\n```';
+    }
+  );
+
+  // Parse markdown to HTML and sanitize
+  let html = DOMPurify.sanitize(marked.parse(withPlaceholders), {
+    ADD_TAGS: ['pre', 'code'],
+  });
+
+  // Replace placeholders with mermaid divs AFTER sanitization
+  Object.entries(mermaidBlocks).forEach(([key, code]) => {
+    const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html = html.replace(
+      new RegExp('<code>' + key + '</code>', 'g'),
+      `<div class="mermaid-pending" data-graph="${escaped.replace(/"/g,'&quot;')}"></div>`
+    );
+  });
+
   return html;
 }
 
 async function renderMdWithMermaid(el, md) {
   el.innerHTML = renderMd(md);
-  const diagrams = el.querySelectorAll('.mermaid');
+  const diagrams = el.querySelectorAll('.mermaid-pending');
   for (const d of diagrams) {
+    const code = d.dataset.graph
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+    const id = 'mm' + Math.random().toString(36).slice(2);
     try {
-      const id = d.id || ('mm-' + Math.random().toString(36).slice(2));
-      d.id = id;
-      const { svg } = await mermaid.render(id + '-svg', d.textContent);
-      d.innerHTML = svg;
+      const { svg } = await mermaid.render(id, code);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mermaid';
+      wrapper.innerHTML = svg;
+      d.replaceWith(wrapper);
     } catch(e) {
-      d.innerHTML = `<pre style="color:var(--red);font-size:.8rem">Mermaid error: ${e.message}</pre>`;
+      const err = document.createElement('pre');
+      err.style.cssText = 'color:var(--red);font-size:.8rem;padding:8px';
+      err.textContent = 'Mermaid error: ' + e.message;
+      d.replaceWith(err);
     }
   }
 }
