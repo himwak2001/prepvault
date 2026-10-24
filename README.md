@@ -1,158 +1,21 @@
 # PrepVault 📝
 
-> A personal interview question bank — write in Markdown, render Mermaid diagrams, share topics publicly, works on mobile.
+A personal interview question bank — write answers in Markdown, render Mermaid diagrams, share topics via a link.
 
-**Stack:** Pure HTML/CSS/JS · Supabase (auth + database) · GitHub Pages (hosting)  
-**Cost:** $0 forever (Supabase free tier + GitHub Pages)
-
----
-
-## Features
-
-- ✅ Email & Google OAuth authentication
-- ✅ Create unlimited topics (e.g. "React", "System Design", "SQL")
-- ✅ Write questions & answers in **Markdown** with live preview
-- ✅ **Mermaid diagrams** support (flowcharts, sequence diagrams, ERDs…)
-- ✅ Make any topic **public** and share a read-only link
-- ✅ Search across all your questions
-- ✅ Dark / light / auto theme toggle
-- ✅ Fully **mobile responsive**
-- ✅ Deployed via GitHub Actions — push to `main` and it's live
+**Free forever:** Supabase (database + auth) + GitHub Pages (hosting)
 
 ---
 
-## Setup Guide (15 minutes)
+## What it does
 
-### Step 1 — Fork / clone this repo
-
-```bash
-git clone https://github.com/YOUR_USERNAME/prepvault.git
-cd prepvault
-```
-
-Or click **Use this template** / **Fork** on GitHub.
-
----
-
-### Step 2 — Create a free Supabase project
-
-1. Go to [supabase.com](https://supabase.com) → **New project**
-2. Choose a name, set a database password, pick the region closest to you
-3. Wait ~2 minutes for provisioning
-
----
-
-### Step 3 — Run the database schema
-
-1. In your Supabase dashboard, go to **SQL Editor → New query**
-2. Paste the entire contents of `supabase/schema.sql`
-3. Click **Run** (green button)
-
-You should see: *"Success. No rows returned"*
-
----
-
-### Step 4 — Get your Supabase credentials
-
-In your Supabase project dashboard:
-
-1. Go to **Settings → API**
-2. Copy:
-   - **Project URL** (looks like `https://xxxx.supabase.co`)
-   - **anon / public** key (long JWT string)
-
----
-
-### Step 5 — Add secrets to GitHub
-
-In your GitHub repo:
-
-1. Go to **Settings → Secrets and variables → Actions → New repository secret**
-2. Add:
-
-| Secret name        | Value                        |
-|--------------------|------------------------------|
-| `SUPABASE_URL`     | Your project URL             |
-| `SUPABASE_ANON_KEY`| Your anon key                |
-
----
-
-### Step 6 — Enable GitHub Pages
-
-1. Go to **Settings → Pages**
-2. Under **Source**, select **GitHub Actions**
-3. Save
-
----
-
-### Step 7 — Deploy
-
-Push any commit to `main` (or trigger manually via **Actions → Deploy PrepVault → Run workflow**).
-
-After ~1 minute, your site is live at:
-```
-https://YOUR_USERNAME.github.io/prepvault/
-```
-
----
-
-### Step 8 (optional) — Enable Google OAuth
-
-1. In Supabase: **Authentication → Providers → Google → Enable**
-2. Follow the instructions to set up a Google Cloud OAuth client
-3. Add your GitHub Pages URL to the **Allowed redirect URIs** in Google Cloud Console
-4. Add the same URL to Supabase → **Authentication → URL Configuration → Redirect URLs**
-
----
-
-### Step 9 (optional) — Custom domain
-
-If you have a domain:
-1. **Settings → Pages → Custom domain** in GitHub
-2. Add a CNAME record pointing to `YOUR_USERNAME.github.io`
-3. Update Supabase → **Authentication → URL Configuration** with your new domain
-
----
-
-## Local development
-
-No build step needed! Just open `docs/index.html` — but you'll need to temporarily hard-code your Supabase credentials for local testing.
-
-Or use a simple local server:
-
-```bash
-cd docs
-npx serve .
-# or
-python3 -m http.server 8080
-```
-
-Then visit `http://localhost:8080`.
-
-For local dev, temporarily replace in `docs/index.html`:
-```js
-const SUPABASE_URL  = 'YOUR_SUPABASE_URL';   // → paste your actual URL
-const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY'; // → paste your anon key
-```
-
-> ⚠️ Never commit real credentials. The GitHub Action injects them via secrets at deploy time.
-
----
-
-## Mermaid diagram example
-
-In the answer editor, use:
-
-````
-```mermaid
-graph TD
-  A[User Request] --> B{Auth?}
-  B -- Yes --> C[Return Data]
-  B -- No  --> D[401 Error]
-```
-````
-
-Supported diagram types: `graph`, `sequenceDiagram`, `erDiagram`, `classDiagram`, `gantt`, `pie`, `flowchart`, and more.
+- Create unlimited **topics** (React, System Design, SQL, …)
+- Write **questions and answers** with a live Markdown split-pane editor
+- Embed **Mermaid diagrams** (flowcharts, ERDs, sequence diagrams) inside answers
+- **Code blocks** with copy button, language label and Cascadia Code font
+- Toggle any topic **public** → share a read-only link with anyone
+- **Search** across all your questions instantly
+- Dark / light / auto **theme**
+- Works on **mobile** (responsive sidebar)
 
 ---
 
@@ -160,33 +23,101 @@ Supported diagram types: `graph`, `sequenceDiagram`, `erDiagram`, `classDiagram`
 
 ```
 prepvault/
-├── docs/
-│   ├── index.html     ← Entire app (single file)
-│   └── 404.html       ← GitHub Pages SPA redirect
+├── docs/               ← everything GitHub Pages serves
+│   ├── index.html      ← markup + modal shells
+│   ├── style.css       ← all styling
+│   ├── app.js          ← all logic (Supabase, rendering, state)
+│   └── 404.html        ← SPA redirect for GitHub Pages
 ├── supabase/
-│   └── schema.sql     ← Database tables + RLS policies
-├── .github/
-│   └── workflows/
-│       └── deploy.yml ← CI/CD pipeline
+│   └── schema.sql      ← run once in Supabase SQL editor
+├── .github/workflows/
+│   └── deploy.yml      ← auto-deploy on every push to main
 └── README.md
 ```
 
 ---
 
-## Supabase free tier limits
+## Quick-start (15 min)
 
-| Resource       | Free limit         |
-|----------------|--------------------|
-| Database       | 500 MB             |
-| Auth users     | Unlimited          |
-| API requests   | 2 million / month  |
-| Bandwidth      | 5 GB / month       |
-| Storage        | 1 GB               |
+### 1 · Create a Supabase project
 
-More than enough for personal use. No credit card required.
+1. Go to [supabase.com](https://supabase.com) → **New project**
+2. Wait ~2 min for it to provision
+
+### 2 · Run the database schema
+
+Supabase dashboard → **SQL Editor** → paste & run each of the 14 statements in `supabase/schema.sql` one at a time.
+
+### 3 · Grab your API credentials
+
+Supabase dashboard → **Project Settings → API**:
+- **Project URL** e.g. `https://abcdef.supabase.co`
+- **anon / public key** (long JWT)
+
+### 4 · Push code to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/prepvault.git
+git branch -M main
+git push -u origin main
+```
+
+### 5 · Add GitHub Secrets
+
+Repo → **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Name | Value |
+|---|---|
+| `SUPABASE_URL` | `https://xxxxx.supabase.co` |
+| `SUPABASE_ANON_KEY` | `eyJh…` |
+
+### 6 · Enable GitHub Pages
+
+Repo → **Settings → Pages → Source: GitHub Actions** → Save
+
+### 7 · Deploy
+
+Go to **Actions → Deploy PrepVault → Run workflow**
+
+Your site is live at `https://YOUR_USERNAME.github.io/prepvault/`
+
+### 8 · Configure Supabase auth redirect
+
+Supabase → **Authentication → URL Configuration**:
+- **Site URL:** `https://YOUR_USERNAME.github.io`
+- **Redirect URLs:** `https://YOUR_USERNAME.github.io/prepvault/`
 
 ---
 
-## License
+## Future deploys
 
-MIT — use it, fork it, customize it freely.
+Every `git push` to `main` triggers an automatic redeploy — no action needed.
+
+---
+
+## Mermaid example
+
+In the answer editor type:
+
+    ```mermaid
+    graph TD
+      A[Question] --> B{Understood?}
+      B -- Yes --> C[Practice]
+      B -- No  --> D[Re-read]
+      C --> E[Ace the interview 🎉]
+    ```
+
+---
+
+## Supabase free tier
+
+| Resource | Free limit |
+|---|---|
+| Database | 500 MB |
+| API requests | 2 M / month |
+| Auth users | Unlimited |
+
+More than enough for personal use. No credit card required.
