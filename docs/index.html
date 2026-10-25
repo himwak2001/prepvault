@@ -668,11 +668,6 @@ body.public-mode #sidebar { display: none; }
       </div>
     </div>
     <button class="btn btn-primary" style="width:100%;justify-content:center" id="auth-submit">Sign in</button>
-    <div class="auth-sep">or</div>
-    <button class="btn btn-ghost" style="width:100%;justify-content:center" id="auth-google">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.9 3 4 11.9 4 23s8.9 20 20 20c11 0 20-8 20-20 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.2 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3c-7.5 0-14 4.1-17.7 10.3z" opacity=".7"/><path fill="#FBBC05" d="M24 43c5.4 0 10.1-1.8 13.8-4.9l-6.4-5.3C29.4 34.6 26.8 35.5 24 35.5c-6 0-11.1-4-13-9.5l-7 5.4C7.5 38.8 15.2 43 24 43z" opacity=".7"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.9 2.6-2.6 4.8-4.8 6.3l6.4 5.3C41.2 36.7 44.5 30.3 44.5 23c0-1-.1-2-.5-3z" opacity=".7"/></svg>
-      Continue with Google
-    </button>
     <div class="auth-switch" id="auth-switch">
       Don't have an account? <a href="#" id="auth-toggle">Create one</a>
     </div>
@@ -925,16 +920,36 @@ function showConfirm(title, body) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// URL HELPERS  (Fix 3: clean URL, no trailing ?)
 // ─────────────────────────────────────────────────────────────────
-function getPublicTopicId() {
+// URL HELPERS
+// slug = lowercased topic name, spaces→hyphens, non-alphanum removed
+// e.g. "Core Java" → "core-java"
+// Public share link uses  ?topic=<slug>--<first8ofUUID>
+// so it's readable AND unique across users
+// ─────────────────────────────────────────────────────────────────
+function makeSlug(name, id) {
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return `${slug}--${id.slice(0, 8)}`;
+}
+
+function getPublicParam() {
+  // Returns the raw ?topic= param value (could be slug--id or bare UUID for old links)
   return new URLSearchParams(location.search).get('topic') || null;
 }
 
-function setCleanUrl(topicId) {
-  // Called when a topic is selected so URL reflects it without ?
+function extractIdFromParam(param) {
+  // Handles both "core-java--abcd1234" and raw UUIDs (backward compat)
+  if (!param) return null;
+  // slug format: ends with --<8hex chars>
+  const m = param.match(/--([0-9a-f]{8})$/);
+  if (m) return m[1]; // just the prefix — we'll look up by partial UUID below
+  // fallback: treat as full UUID
+  return param;
+}
+
+function setCleanUrl(topic) {
   const base = location.pathname;
-  const next = topicId ? `${base}?topic=${topicId}` : base;
+  const next = topic ? `${base}?topic=${makeSlug(topic.name, topic.id)}` : base;
   history.replaceState(null, '', next);
 }
 
@@ -1020,8 +1035,8 @@ function enhanceCodeBlock(pre) {
 // BOOT / ROUTER
 // ─────────────────────────────────────────────────────────────────
 async function boot() {
-  const publicId = getPublicTopicId();
-  if (publicId) { await bootPublic(publicId); return; }
+  const param = getPublicParam();
+  if (param) { await bootPublic(param); return; }
 
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { showAuthScreen('login'); return; }
@@ -1032,7 +1047,7 @@ async function boot() {
 // ─────────────────────────────────────────────────────────────────
 // PUBLIC MODE
 // ─────────────────────────────────────────────────────────────────
-async function bootPublic(topicId) {
+async function bootPublic(param) {
   state.publicMode = true;
   document.body.classList.add('public-mode');
   document.getElementById('auth-screen').classList.add('hidden');
@@ -1044,10 +1059,23 @@ async function bootPublic(topicId) {
   banner.innerHTML = `📖 Viewing a shared topic. <a href="${location.origin}${location.pathname}" style="font-weight:600">Create your own PrepVault →</a>`;
   document.getElementById('main').prepend(banner);
 
-  const { data: topic, error } = await sb.from('topics')
-    .select('*').eq('id', topicId).eq('is_public', true).single();
+  // Resolve param: could be "core-java--abcd1234" or a bare UUID
+  let topic = null;
+  const shortId = extractIdFromParam(param);
 
-  if (error || !topic) {
+  if (shortId && shortId.length === 8) {
+    // Slug format — find by partial UUID match
+    const { data: rows } = await sb.from('topics')
+      .select('*').eq('is_public', true).ilike('id', `${shortId}%`).limit(1);
+    topic = rows?.[0] || null;
+  } else {
+    // Bare UUID fallback
+    const { data } = await sb.from('topics')
+      .select('*').eq('id', shortId).eq('is_public', true).single();
+    topic = data || null;
+  }
+
+  if (!topic) {
     document.getElementById('content').innerHTML = `<div class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <h2>Topic not found</h2><p>This topic is private or does not exist.</p></div>`;
@@ -1056,7 +1084,7 @@ async function bootPublic(topicId) {
 
   document.getElementById('header-title').textContent = topic.name;
   const { data: questions } = await sb.from('questions')
-    .select('*').eq('topic_id', topicId).order('sort_order').order('created_at');
+    .select('*').eq('topic_id', topic.id).order('sort_order').order('created_at');
   renderQuestions(questions || [], topic, true);
 }
 
@@ -1149,12 +1177,7 @@ document.getElementById('auth-submit').onclick = async () => {
   await showApp();
 };
 
-document.getElementById('auth-google').onclick = async () => {
-  await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: `${location.origin}${location.pathname}` }
-  });
-};
+// Google OAuth removed — email/password only
 
 // ─────────────────────────────────────────────────────────────────
 // APP INIT
@@ -1208,8 +1231,8 @@ function renderTopicsList(filter = '') {
 async function loadTopic(id) {
   state.currentTopicId = id;
   renderTopicsList();
-  // Fix 3: update URL to reflect selected topic (no trailing ?)
-  setCleanUrl(id);
+  const topicForUrl = state.topics.find(t => t.id === id);
+  if (topicForUrl) setCleanUrl(topicForUrl);
 
   const topic = state.topics.find(t => t.id === id);
   if (!topic) return;
@@ -1519,7 +1542,7 @@ async function deleteTopic(id) {
 // SHARE MODAL
 // ─────────────────────────────────────────────────────────────────
 function showShareModal(topic) {
-  const url = `${location.origin}${location.pathname}?topic=${topic.id}`;
+  const url = `${location.origin}${location.pathname}?topic=${makeSlug(topic.name, topic.id)}`;
   document.getElementById('share-url').value = url;
   document.getElementById('share-modal').classList.remove('hidden');
 }
@@ -1586,14 +1609,23 @@ async function doSearch(q) {
 
   el.querySelectorAll('.search-result-q').forEach(item => {
     item.addEventListener('click', async () => {
+      const qid = item.dataset.qid;
+      const tid = item.dataset.tid;
       document.getElementById('search-input').value = '';
-      await loadTopic(item.dataset.tid);
-      setTimeout(() => {
-        const card = document.querySelector(`.q-card[data-id="${item.dataset.qid}"]`);
-        if (card) { card.classList.add('open'); card.scrollIntoView({ behavior:'smooth', block:'center' }); }
-      }, 300);
       renderTopicsList();
       closeSidebar();
+      await loadTopic(tid);
+      // After topic loads, find the card, open it, render its answer, then scroll
+      const card = document.querySelector(`.q-card[data-id="${qid}"]`);
+      if (card) {
+        card.classList.add('open');
+        const inner = card.querySelector('.q-answer-inner');
+        if (inner && !inner.dataset.rendered) {
+          inner.dataset.rendered = '1';
+          await renderMdWithMermaid(inner, inner.dataset.md);
+        }
+        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+      }
     });
   });
 }
@@ -1619,6 +1651,11 @@ document.getElementById('sidebar-overlay').addEventListener('click',  closeSideb
 document.getElementById('signout-btn').onclick = async () => {
   await sb.auth.signOut();
   state.user = null; state.topics = []; state.currentTopicId = null;
+  // Fix 4: clear all auth fields so previous credentials don't persist
+  document.getElementById('auth-email').value    = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-name').value     = '';
+  document.getElementById('auth-confirm').value  = '';
   showAuthScreen('login');
 };
 document.getElementById('theme-toggle').onclick = toggleTheme;
@@ -1631,7 +1668,12 @@ sb.auth.onAuthStateChange((event, session) => {
     state.user = session.user; showApp();
   }
   if (event === 'SIGNED_OUT') {
-    state.user = null; showAuthScreen('login');
+    state.user = null;
+    document.getElementById('auth-email').value    = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-name').value     = '';
+    document.getElementById('auth-confirm').value  = '';
+    showAuthScreen('login');
   }
 });
 
