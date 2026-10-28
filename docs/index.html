@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>PrepVault — Interview Q&A</title>
+<title>PrepVault - Interview Q&A</title>
 <meta name="description" content="Store, organise and share your interview questions and answers.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234A72E8'/><text y='.9em' font-size='68' x='12' fill='white'>📝</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -921,35 +921,15 @@ function showConfirm(title, body) {
 
 // ─────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────
-// URL HELPERS
-// slug = lowercased topic name, spaces→hyphens, non-alphanum removed
-// e.g. "Core Java" → "core-java"
-// Public share link uses  ?topic=<slug>--<first8ofUUID>
-// so it's readable AND unique across users
+// URL HELPERS — simple UUID in ?topic=
 // ─────────────────────────────────────────────────────────────────
-function makeSlug(name, id) {
-  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  return `${slug}--${id.slice(0, 8)}`;
-}
-
 function getPublicParam() {
-  // Returns the raw ?topic= param value (could be slug--id or bare UUID for old links)
   return new URLSearchParams(location.search).get('topic') || null;
-}
-
-function extractIdFromParam(param) {
-  // Handles both "core-java--abcd1234" and raw UUIDs (backward compat)
-  if (!param) return null;
-  // slug format: ends with --<8hex chars>
-  const m = param.match(/--([0-9a-f]{8})$/);
-  if (m) return m[1]; // just the prefix — we'll look up by partial UUID below
-  // fallback: treat as full UUID
-  return param;
 }
 
 function setCleanUrl(topic) {
   const base = location.pathname;
-  const next = topic ? `${base}?topic=${makeSlug(topic.name, topic.id)}` : base;
+  const next = topic ? `${base}?topic=${topic.id}` : base;
   history.replaceState(null, '', next);
 }
 
@@ -1047,7 +1027,7 @@ async function boot() {
 // ─────────────────────────────────────────────────────────────────
 // PUBLIC MODE
 // ─────────────────────────────────────────────────────────────────
-async function bootPublic(param) {
+async function bootPublic(topicId) {
   state.publicMode = true;
   document.body.classList.add('public-mode');
   document.getElementById('auth-screen').classList.add('hidden');
@@ -1059,23 +1039,10 @@ async function bootPublic(param) {
   banner.innerHTML = `📖 Viewing a shared topic. <a href="${location.origin}${location.pathname}" style="font-weight:600">Create your own PrepVault →</a>`;
   document.getElementById('main').prepend(banner);
 
-  // Resolve param: could be "core-java--abcd1234" or a bare UUID
-  let topic = null;
-  const shortId = extractIdFromParam(param);
+  const { data: topic, error } = await sb.from('topics')
+    .select('*').eq('id', topicId).eq('is_public', true).single();
 
-  if (shortId && shortId.length === 8) {
-    // Slug format — find by partial UUID match
-    const { data: rows } = await sb.from('topics')
-      .select('*').eq('is_public', true).ilike('id', `${shortId}%`).limit(1);
-    topic = rows?.[0] || null;
-  } else {
-    // Bare UUID fallback
-    const { data } = await sb.from('topics')
-      .select('*').eq('id', shortId).eq('is_public', true).single();
-    topic = data || null;
-  }
-
-  if (!topic) {
+  if (error || !topic) {
     document.getElementById('content').innerHTML = `<div class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <h2>Topic not found</h2><p>This topic is private or does not exist.</p></div>`;
