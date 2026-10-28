@@ -920,7 +920,6 @@ function showConfirm(title, body) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────
 // URL HELPERS — simple UUID in ?topic=
 // ─────────────────────────────────────────────────────────────────
 function getPublicParam() {
@@ -1507,9 +1506,11 @@ async function deleteTopic(id) {
 
 // ─────────────────────────────────────────────────────────────────
 // SHARE MODAL
+// FIX: makeSlug() was never defined. bootPublic() expects the raw
+// topic UUID in ?topic=, so build the link with topic.id directly.
 // ─────────────────────────────────────────────────────────────────
 function showShareModal(topic) {
-  const url = `${location.origin}${location.pathname}?topic=${makeSlug(topic.name, topic.id)}`;
+  const url = `${location.origin}${location.pathname}?topic=${topic.id}`;
   document.getElementById('share-url').value = url;
   document.getElementById('share-modal').classList.remove('hidden');
 }
