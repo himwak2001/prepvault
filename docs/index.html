@@ -534,7 +534,9 @@ const state = {
   user:null, topics:[], sections:[], questions:[],
   currentTopicId:null, editingQId:null, editingTopicId:null,
   editingSectionId:null, movingQId:null,
-  publicMode:false, theme:localStorage.getItem('pv-theme')||'auto'
+  publicMode:false, theme:localStorage.getItem('pv-theme')||'auto',
+  // Tracks which section IDs are expanded (by user click). All collapsed by default.
+  expandedSections: new Set()
 };
 
 // ── THEME ─────────────────────────────────────────────────
@@ -690,7 +692,18 @@ function renderTopicsList(filter=''){
   el.querySelectorAll('.topic-item').forEach(item=>item.addEventListener('click',()=>{closeSidebar();loadTopic(item.dataset.id);}));
 }
 
+function saveExpandedState(){
+  // Snapshot which sections are currently expanded in the DOM
+  document.querySelectorAll('.section-block').forEach(block=>{
+    const sid=block.dataset.sectionId;
+    if(!block.classList.contains('collapsed')) state.expandedSections.add(sid);
+    else state.expandedSections.delete(sid);
+  });
+}
+
 async function loadTopic(id){
+  // Switching to a different topic → reset expanded state so all collapse fresh
+  if(id !== state.currentTopicId) state.expandedSections.clear();
   state.currentTopicId=id;renderTopicsList();
   const topic=state.topics.find(t=>t.id===id);if(!topic)return;
   if(topic)setCleanUrl(topic);
@@ -742,9 +755,10 @@ function renderTopicContent(questions,sections,topic,readOnly){
   // Build section blocks HTML
   let sectionsHtml='';
 
-  // Named sections
+  // Named sections — all collapsed by default unless user previously expanded them
   sections.forEach(s=>{
     const qs=grouped[s.id]||[];
+    const isExpanded=state.expandedSections.has(s.id);
     const sectionActions=readOnly?'':`
       <div class="section-actions" onclick="event.stopPropagation()">
         <button class="section-btn" title="Rename section" onclick="openSectionModal('${s.id}','${topic.id}')">
@@ -755,7 +769,7 @@ function renderTopicContent(questions,sections,topic,readOnly){
         </button>
       </div>`;
     sectionsHtml+=`
-      <div class="section-block" data-section-id="${s.id}">
+      <div class="section-block${isExpanded?'':' collapsed'}" data-section-id="${s.id}">
         <div class="section-header" onclick="toggleSection(this.parentElement)">
           <svg class="section-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span class="section-name">${esc(s.name)}</span>
@@ -763,17 +777,18 @@ function renderTopicContent(questions,sections,topic,readOnly){
           ${sectionActions}
         </div>
         <div class="section-questions q-list">
-          ${qs.length?qs.map((q,i)=>renderQCard(q,i+1,readOnly,s.id)).join(''):`<div class="section-empty">No questions in this section yet. Add a question and assign it here.</div>`}
+          ${qs.length?qs.map((q,i)=>renderQCard(q,i+1,readOnly,s.id)).join(''):`<div class="section-empty">No questions in this section yet.</div>`}
         </div>
       </div>`;
   });
 
-  // Unsectioned block
+  // Unsectioned block — collapsed by default unless previously expanded
   const unsectionedQs=grouped['__none__']||[];
   if(unsectionedQs.length||!sections.length){
     const label=sections.length?'Unsectioned':'Questions';
+    const isExpanded=state.expandedSections.has('__none__');
     sectionsHtml+=`
-      <div class="section-block unsectioned" data-section-id="__none__">
+      <div class="section-block unsectioned${isExpanded?'':' collapsed'}" data-section-id="__none__">
         <div class="section-header" onclick="toggleSection(this.parentElement)">
           <svg class="section-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span class="section-name" style="color:var(--text-2);font-weight:500">${label}</span>
@@ -856,8 +871,13 @@ function renderQCard(q,num,readOnly,currentSectionId){
   </div>`;
 }
 
-// Toggle section collapse
-function toggleSection(block){block.classList.toggle('collapsed');}
+// Toggle section collapse and persist state
+function toggleSection(block){
+  block.classList.toggle('collapsed');
+  const sid=block.dataset.sectionId;
+  if(block.classList.contains('collapsed')) state.expandedSections.delete(sid);
+  else state.expandedSections.add(sid);
+}
 
 // ── SECTION MODAL ─────────────────────────────────────────
 function openSectionModal(sectionId,topicId){
@@ -885,7 +905,7 @@ document.getElementById('section-save').onclick=async()=>{
   }
   btn.disabled=false;
   document.getElementById('section-modal').classList.add('hidden');
-  await loadTopic(state.currentTopicId);
+  saveExpandedState();await loadTopic(state.currentTopicId);
 };
 
 async function deleteSection(sectionId){
@@ -896,7 +916,7 @@ async function deleteSection(sectionId){
   const{error}=await sb.from('sections').delete().eq('id',sectionId);
   if(error){toast('Delete failed','err');return;}
   toast('Section deleted');
-  await loadTopic(state.currentTopicId);
+  saveExpandedState();await loadTopic(state.currentTopicId);
 }
 
 // ── MOVE QUESTION MODAL ───────────────────────────────────
@@ -927,6 +947,7 @@ async function doMoveQuestion(qId,newSectionId){
   if(error){toast('Move failed','err');return;}
   document.getElementById('move-modal').classList.add('hidden');
   toast('Question moved');
+  saveExpandedState();
   await loadTopic(state.currentTopicId);
 }
 
@@ -979,7 +1000,7 @@ document.getElementById('editor-save').onclick=async()=>{
     toast('Question added');
   }
   btn.disabled=false;btn.textContent='Save Question';
-  closeEditor();await loadTopic(topicId);await loadTopics();
+  closeEditor();saveExpandedState();await loadTopic(topicId);await loadTopics();
 };
 
 document.querySelectorAll('.tb-btn').forEach(btn=>{btn.addEventListener('click',()=>{insertMarkdown(document.getElementById('answer-editor'),btn.dataset.action);updatePreview();});});
@@ -996,7 +1017,7 @@ async function deleteQuestion(qId){
   const ok=await showConfirm('Delete question?','This cannot be undone.');if(!ok)return;
   const{error}=await sb.from('questions').delete().eq('id',qId);
   if(error){toast('Delete failed','err');return;}
-  toast('Question deleted');await loadTopic(state.currentTopicId);await loadTopics();
+  toast('Question deleted');saveExpandedState();await loadTopic(state.currentTopicId);await loadTopics();
 }
 
 // ── TOPIC MODAL ───────────────────────────────────────────
