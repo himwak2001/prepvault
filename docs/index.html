@@ -222,13 +222,13 @@ label{font-size:.8rem;font-weight:500;color:var(--text-2);display:block;margin-b
 #main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh;transition:margin-left .25s cubic-bezier(.2,0,0,1);}
 #header{position:sticky;top:0;z-index:100;height:var(--header-h);background:var(--header-bg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;margin-top:env(safe-area-inset-top,0px);}
 #header .page-title{font-size:1.05rem;font-weight:600;letter-spacing:-.015em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#content{flex:1;padding:28px 32px 64px;max-width:960px;width:100%;margin:0 auto;transition:max-width .25s ease;}
+#content{flex:1;padding:24px 28px 64px;max-width:1040px;width:100%;margin:0 auto;transition:max-width .25s ease;}
 #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);backdrop-filter:blur(2px);z-index:150;}
 #open-sidebar{display:none;}
 
 body.zen-mode #sidebar{transform:translateX(-100%);}
 body.zen-mode #main{margin-left:0;}
-body.zen-mode #content{max-width:860px;}
+body.zen-mode #content{max-width:1040px;}
 body.public-mode #zen-toggle{display:none;}
 
 /* ── TOPIC META & FILTER PILLS ───────────────────────── */
@@ -371,7 +371,7 @@ body.public-mode #zen-toggle{display:none;}
   padding: 10px 12px;
 }
 
-/* ── QUESTION CARDS (Smooth Accordion + Dimming + Mastery) ── */
+/* ── QUESTION CARDS (Clean Neutral Borders + Smooth Accordion) ── */
 .q-list { display: flex; flex-direction: column; gap: 9px; }
 
 .q-card {
@@ -394,16 +394,16 @@ body.public-mode #zen-toggle{display:none;}
 }
 
 .q-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--text-3) 35%, var(--border));
   box-shadow: var(--shadow);
 }
 .q-card.open {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
 }
+/* Subtle neutral indicator only for J/K keyboard navigation (never on mouse click) */
 .q-card.kb-focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--border), var(--shadow);
 }
 
 .q-header {
@@ -417,7 +417,7 @@ body.public-mode #zen-toggle{display:none;}
   transition: background .15s;
 }
 .q-card.open .q-header {
-  background: var(--accent-soft);
+  background: var(--surface-tint);
 }
 
 .q-num {
@@ -515,7 +515,7 @@ body.public-mode #zen-toggle{display:none;}
 }
 .q-card.open .q-chevron {
   transform: rotate(90deg);
-  color: var(--accent);
+  color: var(--text-2);
 }
 
 /* Smooth CSS Grid Accordion */
@@ -530,28 +530,21 @@ body.public-mode #zen-toggle{display:none;}
 .q-answer {
   overflow: hidden;
   min-width: 0;
-  padding: 0 22px;
+  padding: 0 18px;
   background: var(--surface);
   border-top: 1px solid transparent;
   transition: padding .24s cubic-bezier(.2,0,0,1), border-color .2s;
 }
 .q-card.open .q-answer {
-  padding: 0 22px 22px;
+  padding: 0 18px 20px;
   border-top-color: var(--border-subtle);
 }
 .q-answer-inner {
-  padding-top: 18px;
+  padding-top: 16px;
   font-size: .91rem;
-  line-height: 1.78;
+  line-height: 1.75;
   color: var(--text);
-}
-
-/* Optimal reading line width (70ch) for prose inside answers; code/tables stay full width */
-.q-answer-inner p,
-.q-answer-inner ul,
-.q-answer-inner ol,
-.q-answer-inner blockquote {
-  max-width: 70ch;
+  width: 100%;
 }
 
 .q-actions {
@@ -573,7 +566,7 @@ body.public-mode #zen-toggle{display:none;}
 .md-body ul,.md-body ol{padding-left:1.5em;margin:0 0 .9em;}
 .md-body li{margin-bottom:.35em;}
 .md-body blockquote{border-left:3px solid var(--accent);margin:0 0 1em;padding:9px 15px;color:var(--text-2);background:var(--accent-soft);border-radius:0 8px 8px 0;}
-.md-body table{width:100%;border-collapse:collapse;margin:0 0 1.1em;font-size:.86rem;border-radius:8px;overflow:hidden;display:block;overflow-x:auto;}
+.md-body table{width:100%;border-collapse:collapse;margin:0 0 1.1em;font-size:.86rem;border-radius:8px;overflow:hidden;}
 .md-body th,.md-body td{padding:9px 13px;border:1px solid var(--border);text-align:left;}
 .md-body th{background:var(--surface-tint);font-weight:600;}
 .md-body tr:nth-child(even){background:var(--bg);}
@@ -1331,7 +1324,7 @@ function renderTopicContent(questions,sections,topic,readOnly){
   content.querySelectorAll('.q-card').forEach(card=>{
     card.querySelector('.q-header').addEventListener('click',async(e)=>{
       if(e.target.closest('.q-actions')||e.target.closest('.q-status')||e.target.closest('a'))return;
-      setFocusedCard(card);
+      setFocusedCard(card, false);
       await toggleQCard(card);
     });
     const statusBtn=card.querySelector('.q-status');
@@ -1394,10 +1387,10 @@ function toggleSection(block){
 }
 
 // ── KEYBOARD STUDY FLOW ───────────────────────────────────
-function setFocusedCard(card){
+function setFocusedCard(card, fromKeyboard=false){
   document.querySelectorAll('.q-card.kb-focus').forEach(c=>c.classList.remove('kb-focus'));
   if(card){
-    card.classList.add('kb-focus');
+    if(fromKeyboard) card.classList.add('kb-focus');
     state.focusedCardId=card.dataset.id;
   } else {
     state.focusedCardId=null;
@@ -1465,7 +1458,7 @@ document.addEventListener('keydown',async(e)=>{
     const dir=(e.key==='j'||e.key==='J')?1:-1;
     const nextIdx=idx===-1?(dir>0?0:cards.length-1):(idx+dir+cards.length)%cards.length;
     const target=cards[nextIdx];
-    setFocusedCard(target);
+    setFocusedCard(target, true);
     target.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
@@ -1712,7 +1705,7 @@ async function doSearch(q){
       if(card){
         const sec=card.closest('.section-block');
         if(sec&&sec.classList.contains('collapsed')) toggleSection(sec);
-        setFocusedCard(card);
+        setFocusedCard(card, false);
         if(!card.classList.contains('open')) await toggleQCard(card);
         setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),80);
       }
